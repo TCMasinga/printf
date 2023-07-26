@@ -1,6 +1,10 @@
 #include "main.h"
-#include <unistd.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include "format_helpers.h"
+
+#define FORMAT_HELPERS_H
+#define BUFF_SIZE 1024
 
 void print_buffer(char buffer[], int *buff_ind);
 /**
@@ -11,17 +15,17 @@ void print_buffer(char buffer[], int *buff_ind);
 void print_buffer(char buffer[], int *buff_ind)
 {
 	if (*buff_ind > 0)
-		write(1, &buffer[0], *buff_ind);
-
-	*buff_ind = 0;
+	{
+		write(1, buffer, *buff_ind);
+		*buff_ind = 0;
+	}
 }
 
 /**
  * _printf - produces output according to a format.
- * @format: input value format.
- * Return: printed chars.
+ * @format: input value string
+ * Return: the number of characters printed
  */
-
 int _printf(const char *format, ...)
 {
 	int i, printed = 0, printed_chars = 0;
@@ -34,16 +38,16 @@ int _printf(const char *format, ...)
 
 	va_start(list, format);
 
-	for (i = 0; format && format[i] != '\0'; i++)
+	for (i = 0; format[i] != '\0'; i++)
 	{
 		if (format[i] != '%')
 		{
 			buffer[buff_ind++] = format[i];
-			if (buff_ind == BUFF_SIZE)
-			print_buffer(buffer, &buff_ind);
-
-		/* write(1, &format[i], 1);*/
-			printed_chars++;
+			if (buff_ind == BUFF_SIZE - 1)
+			{
+				print_buffer(buffer, &buff_ind);
+				printed_chars += buff_ind;
+			}
 		}
 		else
 		{
@@ -52,11 +56,15 @@ int _printf(const char *format, ...)
 			width = get_width(format, &i, list);
 			precision = get_precision(format, &i, list);
 			size = get_size(format, &i);
-				++i;
+			++i;
 			printed = handle_print(format, &i, list, buffer,
 				flags, width, precision, size);
+
 			if (printed == -1)
+			{
+				va_end(list);
 				return (-1);
+			}
 			printed_chars += printed;
 		}
 	}
@@ -65,5 +73,5 @@ int _printf(const char *format, ...)
 
 	va_end(list);
 
-	return (printed_chars);
+	return printed_chars;
 }
