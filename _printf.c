@@ -1,72 +1,84 @@
 #include "main.h"
+#include <unistd.h>
+#include <stdarg.h>
 
-void print_buffer(char buffer[], int *buff_ind);
+int _printf(const char *format, ...);
 
 /**
- * _printf - produces output according to a format.
- * @format: input value string
- * Return: the number of characters printed
+ * _printf - Produces output according to a format.
+ * @format: Input value format string
+ * Return: Number of characters printed
  */
 int _printf(const char *format, ...)
 {
-	int i, printed = 0, printed_chars = 0;
-	int flags, width, precision, size, buff_ind = 0;
-	va_list list;
-	char buffer[BUFF_SIZE];
+	int printed_chars = 0;
+	va_list args;
 
-	if (format == NULL)
-		return (-1);
+	va_start(args, format);
 
-	va_start(list, format);
-
-	for (i = 0; format[i] != '\0'; i++)
+	while (*format != '\0')
 	{
-		if (format[i] != '%')
+		if (*format == '%')
 		{
-			buffer[buff_ind++] = format[i];
-			if (buff_ind == BUFF_SIZE - 1)
+			format++;
+
+			if (*format == '\0')
+				break;
+
+			if (*format == 'c')
 			{
-				print_buffer(buffer, &buff_ind);
-				printed_chars += buff_ind;
-			}
-		}
-		else
-		{
-			print_buffer(buffer, &buff_ind);
-			flags = get_flags(format, &i);
-			width = get_width(format, &i, list);
-			precision = get_precision(format, &i, list);
-			size = get_size(format, &i);
-			++i;
-			printed = handle_print(format, &i, list, buffer,
-				flags, width, precision, size);
+				char c = (char)va_arg(args, int);
 
-			if (printed == -1)
+				write(1, &c, 1);
+				printed_chars++;
+			}
+
+				else if (*format == 's')
+				{
+					char *str = va_arg(args, char *);
+					int len = 0;
+
+					while (str[len] != '\0')
+						len++;
+
+					write(1, str, len);
+					printed_chars += len;
+				}
+
+				else if (*format == '%')
+				{
+					char percent = '%';
+
+					write(1, &percent, 1);
+					printed_chars++;
+				}
+
+				else
+				{
+					write(1, format - 1, 1);
+					printed_chars++;
+				}
+			}
+
+			else
 			{
-				va_end(list);
-				return (-1);
+				write(1, format, 1);
+				printed_chars++;
 			}
-			printed_chars += printed;
+
+			format++;
 		}
-	}
 
-	print_buffer(buffer, &buff_ind);
-
-	va_end(list);
-
-	return (printed_chars);
+		va_end(args);
+		return (printed_chars);
 }
 
-/**
- * print_buffer - Prints the contents of the buffer if it exist
- * @buffer: Array of chars
- * @buff_ind: Index at which to add next char, represents the length.
- */
-void print_buffer(char buffer[], int *buff_ind)
+int main(void)
 {
-	if (*buff_ind > 0)
-	{
-		write(1, &buffer[0], *buff_ind);
-		*buff_ind = 0;
-	}
+	int num = 42;
+	char str[] = "Printing the Output!";
+
+	_printf("Integer: %d, String: %s, Character: %c, Percent: %%\n",
+			num, str, 'X');
+	return (0);
 }
