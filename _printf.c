@@ -1,84 +1,103 @@
-#include "main.h"
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdarg.h>
-
-int _printf(const char *format, ...);
+#include "main.h"
 
 /**
- * _printf - Produces output according to a format.
- * @format: Input value format string
- * Return: Number of characters printed
+ * _printf - printf function
+ * @format: A pointer to a string with format specifiers
+ *
+ * Return: The number of characters printed (excluding the null byte).
  */
+
 int _printf(const char *format, ...)
 {
-	int printed_chars = 0;
-	va_list args;
+    va_list args;
+    va_start(args, format);
 
-	va_start(args, format);
+    int chars_printed = 0;
+    char c;
+    char *output_buffer = NULL;
+    int output_buffer_size = 0;
+    int buffer_index = 0;
 
-	while (*format != '\0')
-	{
-		if (*format == '%')
-		{
-			format++;
+    while ((c = *format++))
+    {
+        if (c != '%')
+        {
+            if (buffer_index >= output_buffer_size - 1)
+            {
+                output_buffer_size += 1024;
+                output_buffer = (char *)realloc(output_buffer, output_buffer_size);
+            }
+            output_buffer[buffer_index++] = c;
+            chars_printed++;
+        }
+        else
+        {
+            c = *format++;
+            switch (c)
+            {
+                case 'c':
+                {
+                    char ch = (char)va_arg(args, int);
+                    if (buffer_index >= output_buffer_size - 1)
+                    {
+                        output_buffer_size += 1024;
+                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
+                    }
+                    output_buffer[buffer_index++] = ch;
+                    chars_printed++;
+                    break;
+                }
+                case 's':
+                {
+                    char *str = va_arg(args, char*);
+                    while (*str)
+                    {
+                        if (buffer_index >= output_buffer_size - 1)
+                        {
+                            output_buffer_size += 1024;
+                            output_buffer = (char *)realloc(output_buffer, output_buffer_size);
+                        }
+                        output_buffer[buffer_index++] = *str++;
+                        chars_printed++;
+                    }
+                    break;
+                }
+                case '%':
+                {
+                    if (buffer_index >= output_buffer_size - 1)
+                    {
+                        output_buffer_size += 1024;
+                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
+                    }
+                    output_buffer[buffer_index++] = '%';
+                    chars_printed++;
+                    break;
+                }
+                default:
+                {
+                    if (buffer_index >= output_buffer_size - 2)
+                    {
+                        output_buffer_size += 1024;
+                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
+                    }
+                    output_buffer[buffer_index++] = '%';
+                    output_buffer[buffer_index++] = c;
+                    chars_printed += 2;
+                    break;
+                }
+            }
+        }
+    }
 
-			if (*format == '\0')
-				break;
+    va_end(args);
 
-			if (*format == 'c')
-			{
-				char c = (char)va_arg(args, int);
+    write(STDOUT_FILENO, output_buffer, buffer_index);
 
-				write(1, &c, 1);
-				printed_chars++;
-			}
+    free(output_buffer);
 
-				else if (*format == 's')
-				{
-					char *str = va_arg(args, char *);
-					int len = 0;
-
-					while (str[len] != '\0')
-						len++;
-
-					write(1, str, len);
-					printed_chars += len;
-				}
-
-				else if (*format == '%')
-				{
-					char percent = '%';
-
-					write(1, &percent, 1);
-					printed_chars++;
-				}
-
-				else
-				{
-					write(1, format - 1, 1);
-					printed_chars++;
-				}
-			}
-
-			else
-			{
-				write(1, format, 1);
-				printed_chars++;
-			}
-
-			format++;
-		}
-
-		va_end(args);
-		return (printed_chars);
+    return chars_printed;
 }
 
-int main(void)
-{
-	int num = 42;
-	char str[] = "Printing the Output!";
-
-	_printf("Integer: %d, String: %s, Character: %c, Percent: %%\n",
-			num, str, 'X');
-	return (0);
-}
