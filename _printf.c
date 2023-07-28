@@ -1,103 +1,77 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include "main.h"
 
+void print_buffer(char buffer[], int *buff_ind);
+int _printf(const char *format, ...);
+
 /**
- * _printf - Custom printf function
- * @format: A pointer to a string with format specifiers
+ * _printf - Printf function
  *
- * Return: The number of characters printed (excluding the null byte).
+ * @format: format
+ *
+ * Return: Printed chars.
+ *
+ *
  */
 
 int _printf(const char *format, ...)
 {
-    va_list args;
-    va_start(args, format);
+	int i, printed = 0, printed_chars = 0;
+	int flags, width, precision, size, buff_ind = 0;
+	va_list list;
+	char buffer[BUFF_SIZE];
 
-    int chars_printed = 0;
-    char c;
-    char *output_buffer = NULL;
-    int output_buffer_size = 0;
-    int buffer_index = 0;
+	if (format == NULL)
+		return (-1);
 
-    while ((c = *format++))
-    {
-        if (c != '%')
-        {
-            if (buffer_index >= output_buffer_size - 1)
-            {
-                output_buffer_size += 1024;
-                output_buffer = (char *)realloc(output_buffer, output_buffer_size);
-            }
-            output_buffer[buffer_index++] = c;
-            chars_printed++;
-        }
-        else
-        {
-            c = *format++;
-            switch (c)
-            {
-                case 'c':
-                {
-                    char ch = (char)va_arg(args, int);
-                    if (buffer_index >= output_buffer_size - 1)
-                    {
-                        output_buffer_size += 1024;
-                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
-                    }
-                    output_buffer[buffer_index++] = ch;
-                    chars_printed++;
-                    break;
-                }
-                case 's':
-                {
-                    char *str = va_arg(args, char*);
-                    while (*str)
-                    {
-                        if (buffer_index >= output_buffer_size - 1)
-                        {
-                            output_buffer_size += 1024;
-                            output_buffer = (char *)realloc(output_buffer, output_buffer_size);
-                        }
-                        output_buffer[buffer_index++] = *str++;
-                        chars_printed++;
-                    }
-                    break;
-                }
-                case '%':
-                {
-                    if (buffer_index >= output_buffer_size - 1)
-                    {
-                        output_buffer_size += 1024;
-                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
-                    }
-                    output_buffer[buffer_index++] = '%';
-                    chars_printed++;
-                    break;
-                }
-                default:
-                {
-                    if (buffer_index >= output_buffer_size - 2)
-                    {
-                        output_buffer_size += 1024;
-                        output_buffer = (char *)realloc(output_buffer, output_buffer_size);
-                    }
-                    output_buffer[buffer_index++] = '%';
-                    output_buffer[buffer_index++] = c;
-                    chars_printed += 2;
-                    break;
-                }
-            }
-        }
-    }
+	va_start(list, format);
 
-    va_end(args);
+	for (i = 0; format && format[i] != '\0'; i++)
+	{
+		if (format[i] != '%')
+		{
+			buffer[buff_ind++] = format[i];
+			if (buff_ind == BUFF_SIZE)
+				print_buffer(buffer, &buff_ind);
+			printed_chars++;
+		}
+		else
+		{
+		
+			flags = get_flags(format, &i);
+			print_buffer(buffer, &buff_ind);
+			width = get_width(format, &i, list);
+			size = get_size(format, &i);
+			++i;
+			precision = get_precision(format, &i, list);
+			printed = handle_print(format, &i, list, buffer,
+				flags, width, precision, size);
+			if (printed == -1)
+				return (-1);
+			printed_chars += printed;
+		}
+	}
 
-    write(STDOUT_FILENO, output_buffer, buffer_index);
+	print_buffer(buffer, &buff_ind);
 
-    free(output_buffer);
+	va_end(list);
 
-    return chars_printed;
+	return (printed_chars);
+}
+
+/**
+ * print_buffer - Prints the contents of the buffer if it exist
+ *
+ * @buffer: Array of chars
+ *
+ * @buff_ind: Index at which to add next char, represents length
+ *
+ *
+ */
+
+void print_buffer(char buffer[], int *buff_ind)
+{
+	if (*buff_ind > 0)
+		write(1, &buffer[0], *buff_ind);
+	*buff_ind = 0;
 }
 
